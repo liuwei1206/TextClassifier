@@ -3,6 +3,7 @@
 
 import os
 import json
+import pickle
 
 import nltk
 import numpy as np
@@ -88,7 +89,7 @@ def reverse_padded_sequence(inputs, lengths, batch_first=True):
 
     return reversed_inputs
 
-def build_embedding_of_corpus(embed_file, vocab, embed_dim):
+def build_embedding_of_corpus(embed_file, vocab, embed_dim, data_dir):
     """
     load embedding from embed_file
     Args:
@@ -98,38 +99,47 @@ def build_embedding_of_corpus(embed_file, vocab, embed_dim):
     Returns:
         corpus_embed:
     """
-    word2vec = {}
-    with open(embed_file, "r", encoding="utf-8") as f:
-        idx = 0
-        load_word_num = 0
-        for line in f:
-            line = line.strip()
-            if line:
-                item = line.split()
-                if len(item) != (embed_dim+1):
-                    continue
-                word = item[0]
-                vector = item[1:]
-                if word in vocab:
-                    word2vec[word] = np.array(vector, dtype=np.float)
-                    load_word_num += 1
-                    if len(vocab) == load_word_num:
-                        print("load embedding finished!")
-                        break
-                idx += 1
-                # if idx > 100000:
-                #     break
-                if idx % 21800 == 0:
-                    print("loading per%d"%(idx / 21800))
+    processed_embed_name = "processed_embed.pkl"
+    processed_file = os.path.join(data_dir, processed_embed_name)
+    if os.path.exists(processed_file):
+        with open(processed_file, "rb") as f:
+            corpus_embed = pickle.load(f)
+    else:
+        word2vec = {}
+        with open(embed_file, "r", encoding="utf-8") as f:
+            idx = 0
+            load_word_num = 0
+            for line in f:
+                line = line.strip()
+                if line:
+                    item = line.split()
+                    if len(item) != (embed_dim+1):
+                        continue
+                    word = item[0]
+                    vector = item[1:]
+                    if word in vocab:
+                        word2vec[word] = np.array(vector, dtype=np.float)
+                        load_word_num += 1
+                        if len(vocab) == load_word_num:
+                            print("load embedding finished!")
+                            break
+                    idx += 1
+                    # if idx > 100000:
+                    #     break
+                    if idx % 21800 == 0:
+                        print("loading per%d"%(idx / 21800))
 
-    corpus_embed = np.empty([len(vocab), embed_dim])
-    scale = np.sqrt(3.0 / embed_dim)
-    for idx, word in enumerate(vocab):
-        if word in word2vec:
-            corpus_embed[idx, :] = word2vec[word]
-        elif word.lower() in word2vec:
-            corpus_embed[idx, :] = word2vec[word.lower()]
-        else:
-            corpus_embed[idx, :] = np.random.uniform(-scale, scale, [1, embed_dim])
+        corpus_embed = np.empty([len(vocab), embed_dim])
+        scale = np.sqrt(3.0 / embed_dim)
+        for idx, word in enumerate(vocab):
+            if word in word2vec:
+                corpus_embed[idx, :] = word2vec[word]
+            elif word.lower() in word2vec:
+                corpus_embed[idx, :] = word2vec[word.lower()]
+            else:
+                corpus_embed[idx, :] = np.random.uniform(-scale, scale, [1, embed_dim])
+        
+        with open(processed_file, "wb") as f:
+            pickle.dump(corpus_embed, f)
 
     return corpus_embed

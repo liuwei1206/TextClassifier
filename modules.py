@@ -10,18 +10,19 @@ import torch
 import torch.nn as nn
 
 class Embedding(torch.nn.Module):
-    def __init__(self, vocab, embed_dim, embed_file):
+    def __init__(self, vocab, embed_dim, embed_file, data_dir):
         super(Embedding, self).__init__()
 
         self.vocab = vocab
         self.embed_dim = embed_dim
         self.embed_file = embed_file
+        self.data_dir = data_dir
         self.embedding = nn.Embedding(len(vocab), embed_dim)
 
         self.init_embedding()
 
     def init_embedding(self):
-        corpus_embed = build_embedding_of_corpus(self.embed_file, self.vocab, self.embed_dim)
+        corpus_embed = build_embedding_of_corpus(self.embed_file, self.vocab, self.embed_dim, self.data_dir)
         assert corpus_embed.shape[0] == len(self.vocab), (corpus_embed.shape[0], len(self.vocab))
         assert corpus_embed.shape[1] == self.embed_dim, (corpus_embed.shape[1], self.embed_dim)
 

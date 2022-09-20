@@ -22,21 +22,24 @@ class EmbedDataset(Dataset):
         self.vocab = params["vocab"]
         self.text_key = params["text_key"]
         self.label_key = params["label_key"]
-
+        self.word2idx = {}
 
         self.init_dataset()
 
     def convert_tokens_to_ids(self, tokens):
         token_ids = []
         for token in tokens:
-            if token in self.vocab:
-                token_ids.append(self.vocab.index(token))
+            if token in self.word2idx:
+                token_ids.append(self.word2idx[token])
             else:
-                tokens.append(self.vocab.index("<unk>")) # 0 as <pad> id
+                tokens.append(self.word2idx["<unk>"]) # 0 as <pad> id
 
         return token_ids
 
     def init_dataset(self):
+        for idx, word in enumerate(self.vocab):
+            self.word2idx[word] = idx
+
         all_input_ids = []
         all_seq_lengths = []
         all_label_ids = []
@@ -63,6 +66,7 @@ class EmbedDataset(Dataset):
                     all_input_ids.append(input_ids)
                     all_seq_lengths.append(seq_length)
                     all_label_ids.append(label_id)
+
         assert len(all_input_ids) == len(all_seq_lengths), (len(all_input_ids), len(all_seq_lengths))
         assert len(all_input_ids) == len(all_label_ids), (len(all_input_ids), len(all_label_ids))
 

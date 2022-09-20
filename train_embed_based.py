@@ -106,9 +106,10 @@ def get_model(args):
         params = {
             "vocab": args.vocab,
             "embed_file": args.embed_file,
+            "data_dir": args.data_dir,
             "input_dim": args.input_dim,
             "hidden_size": args.hidden_size,
-            "num_layers": 2,
+            "num_layers": 1,
             "num_labels": len(args.labels),
             "dropout": args.dropout
         }
@@ -188,15 +189,13 @@ def train(model, args, train_dataset, dev_dataset, test_dataset):
             best_test_epoch = epoch
         output_dir = os.path.join(args.output_dir, TIME_CHECKPOINT_DIR)
         output_dir = os.path.join(output_dir, f"{PREFIX_CHECKPOINT_DIR}_{epoch}")
-        os.makedirs(output_dir, exist_ok=True)
-        torch.save(model.state_dict(), os.path.join(output_dir, "pytorch_model.bin"))
+        # os.makedirs(output_dir, exist_ok=True)
+        # torch.save(model.state_dict(), os.path.join(output_dir, "pytorch_model.bin"))
 
     print("Best dev: Epoch=%d, Acc=%.4f" % (best_dev_epoch, best_dev))
     print("Best test: Epoch=%d, Acc=%.4f" % (best_test_epoch, best_test))
 
 def evaluate(model, args, dataset, desc="dev", write_file=False):
-    print("in++")
-    
     dataloader = get_dataloader(dataset, args, mode=desc)
     all_label_ids = None
     all_pred_ids = None
@@ -274,7 +273,7 @@ def main():
         train_dataset = get_dataset(args, mode="train")
         dev_dataset = get_dataset(args, mode="dev")
         test_dataset = get_dataset(args, mode="test")
-
+        print("Train size: %d, Dev size: %d, Test size: %d"%(train_dataset.total_size, dev_dataset.total_size, test_dataset.total_size))
         train(model, args, train_dataset, dev_dataset, test_dataset)
 
     if args.do_eval or args.do_pred:
