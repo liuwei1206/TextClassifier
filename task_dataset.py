@@ -20,6 +20,8 @@ class EmbedDataset(Dataset):
         self.max_seq_length = params["max_seq_length"]
         self.labels = params["labels"]
         self.vocab = params["vocab"]
+        self.text_key = params["text_key"]
+        self.label_key = params["label_key"]
 
 
         self.init_dataset()
@@ -45,8 +47,8 @@ class EmbedDataset(Dataset):
                 if line:
                     sample = json.loads(line)
 
-                    text = sample["text"]
-                    label = sample["label"]
+                    text = sample[self.text_key]
+                    label = sample[self.label_key]
 
                     tokens = nltk.word_tokenize(text)
                     if len(tokens) > self.max_seq_length:

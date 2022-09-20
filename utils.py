@@ -35,7 +35,7 @@ def get_vocab_from_corpus(data_dir, item_key="text", require_unk=False):
     vocab.insert(0, "<pad>")
     if require_unk:
         vocab.insert(1, "<unk>")
-    print("vocab size: %d\n"%(len(vocab)))
+    print("vocab size: %d"%(len(vocab)))
 
     return vocab
 
@@ -52,7 +52,7 @@ def get_labels_from_corpus(data_dir, item_key="label"):
                     label = sample[item_key]
                     labels.add(label)
     labels = list(labels)
-    print("label size: %d\n" % (len(labels)))
+    print("label size: %d" % (len(labels)))
     return labels
 
 def reverse_padded_sequence(inputs, lengths, batch_first=True):
@@ -117,10 +117,12 @@ def build_embedding_of_corpus(embed_file, vocab, embed_dim):
                         print("load embedding finished!")
                         break
                 idx += 1
-                if idx % 20600 == 0:
-                    print("loading %d%"%(idx / 20600))
+                if idx > 100000:
+                    break
+                if idx % 21800 == 0:
+                    print("loading per%d"%(idx / 21800))
 
-    corpus_embed = np.empty(len(vocab), embed_dim)
+    corpus_embed = np.empty([len(vocab), embed_dim])
     scale = np.sqrt(3.0 / embed_dim)
     for idx, word in enumerate(vocab):
         if word in word2vec:

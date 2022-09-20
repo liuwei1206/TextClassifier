@@ -16,6 +16,7 @@ import torch.nn as nn
 from torch.utils.data.sampler import RandomSampler, Sampler, SequentialSampler
 from torch.utils.data.dataloader import DataLoader
 from torch.optim import Adam
+from torch.optim.lr_scheduler import ExponentialLR
 
 from task_dataset import EmbedDataset
 from models import TextLSTM
@@ -34,7 +35,9 @@ def get_argparse():
     parser.add_argument("--dataset", default="test", type=str, help="toefl1234, gcdc")
     parser.add_argument("--fold_id", default=-1, type=int, help="[1-5] for toefl1234, [1-10] for gcdc")
     parser.add_argument("--output_dir", default="data/result", type=str, help="path to save checkpoint")
-    parser.add_argument("--embed_file", default="data/embeddings/glove", type=str)
+    parser.add_argument("--embed_file", default="data/embedding/glove.840B.300d.txt", type=str)
+    parser.add_argument("--text_key", default="text", type=str)
+    parser.add_argument("--label_key", default="score", type=str)
 
     # for model
     parser.add_argument("--model_type", default="textlstm", type=str, help="models for text classification")
@@ -45,9 +48,9 @@ def get_argparse():
     parser.add_argument("--do_train", default=False, action="store_true", help="Whether to run training.")
     parser.add_argument("--do_eval", default=False, action="store_true", help="Whether to do evaluation")
     parser.add_argument("--do_pred", default=False, action="store_true")
-    parser.add_argument("--max_seq_length", default=384, type=int, help="the max length of input sequence")
-    parser.add_argument("--train_batch_size", default=16, type=int, help="the training batch size")
-    parser.add_argument("--eval_batch_size", default=32, type=int, help="the eval batch size")
+    parser.add_argument("--max_seq_length", default=64, type=int, help="the max length of input sequence")
+    parser.add_argument("--train_batch_size", default=4, type=int, help="the training batch size")
+    parser.add_argument("--eval_batch_size", default=4, type=int, help="the eval batch size")
     parser.add_argument("--num_train_epochs", default=20, type=int, help="training epoch, only work when max_step==-1")
     parser.add_argument("--learning_rate", default=5e-2, type=float, help="The initial learning rate for Adam")
     parser.add_argument("--dropout", default=0.5, type=float, help="dropout value")
@@ -70,7 +73,9 @@ def get_dataset(args, mode="train"):
         data_params = {
             "max_seq_length": args.max_seq_length,
             "labels": args.labels,
-            "vocab": args.vocab
+            "vocab": args.vocab,
+            "text_key": args.text_key,
+            "label_key": args.label_key
         }
         file_name = os.path.join(args.data_dir, "{}.json".format(mode))
         dataset = EmbedDataset(file_name, data_params)
@@ -124,10 +129,7 @@ def get_optimizer(model, args, num_training_steps):
         }
     ]
     optimizer = Adam(optimizer_grouped_parameters, lr=args.learning_rate)
-    scheduler = get_linear_schedule_with_warmup(
-        optimizer, num_warmup_steps=int(num_training_steps * args.warmup_ratio),
-        num_training_steps=num_training_steps
-    )
+    scheduler = ExponentialLR(optimizer, gamma=0.95)
     return optimizer, scheduler
 
 def train(model, args, train_dataset, dev_dataset, test_dataset):
@@ -160,13 +162,15 @@ def train(model, args, train_dataset, dev_dataset, test_dataset):
             loss.backward()
             cur_loss = loss.item()
             avg_loss += cur_loss
-            torch.nn.utils.clip_grad_norm(model.parameters(), args.max_grad_norm)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
             optimizer.step()
-            scheduler.step()
+            # scheduler.step()
             global_step += 1
 
             if global_step % 100 == 0:
                 print("global step: %d, cur loss: %.2f, avg loss: %.2f"%(global_step, cur_loss, avg_loss / global_step))
+        # update lr
+        scheduler.step()
 
         # evaluation after each epoch
         model.eval()
@@ -191,6 +195,8 @@ def train(model, args, train_dataset, dev_dataset, test_dataset):
     print("Best test: Epoch=%d, Acc=%.4f" % (best_test_epoch, best_test))
 
 def evaluate(model, args, dataset, desc="dev", write_file=False):
+    print("in++")
+    
     dataloader = get_dataloader(dataset, args, mode=desc)
     all_label_ids = None
     all_pred_ids = None
@@ -198,7 +204,7 @@ def evaluate(model, args, dataset, desc="dev", write_file=False):
     for batch in tqdm(dataloader, desc=desc):
         batch = tuple(t.to(args.device) for t in batch)
         if args.model_type.lower() == "textlstm":
-            inputs = {"input_ids": batch[0], "seq_lengths": batch[1], "labels": batch[2], "flag": "Train"}
+            inputs = {"input_ids": batch[0], "seq_lengths": batch[1], "labels": batch[2], "flag": "Eval"}
             label_index = 2
         with torch.no_grad():
             outputs = model(**inputs)
@@ -206,13 +212,14 @@ def evaluate(model, args, dataset, desc="dev", write_file=False):
 
         label_ids = batch[label_index].detach().cpu().numpy()
         preds = preds.detach().cpu().numpy()
+        
         if all_label_ids is None:
             all_label_ids = label_ids
             all_pred_ids = preds
         else:
             all_label_ids = np.append(all_label_ids, label_ids)
             all_pred_ids = np.append(all_pred_ids, preds)
-
+    
     acc = accuracy_score(y_true=all_label_ids, y_pred=all_pred_ids)
     f1 = f1_score(y_true=all_label_ids, y_pred=all_pred_ids, average="macro")
 
@@ -230,6 +237,7 @@ def evaluate(model, args, dataset, desc="dev", write_file=False):
                     error_num += 1
                     f.write("%s\t%s\t%d\n" % (l, p, error_num))
 
+    return acc, f1
 
 def main():
     args = get_argparse().parse_args()
@@ -238,7 +246,7 @@ def main():
     else:
         device = torch.device("cpu")
     args.device = device
-    logger.info("Training/evaluation parameters %s", args)
+    print("Training/evaluation parameters %s", args)
     set_seed(args.seed)
 
     # 1. data related
@@ -251,8 +259,10 @@ def main():
     if args.fold_id > 0:
         output_dir = os.path.join(output_dir, str(args.fold_id))
     args.output_dir = output_dir
-    labels = get_labels_from_corpus(args.data_dir)
+    labels = get_labels_from_corpus(args.data_dir, item_key="score")
     vocab = get_vocab_from_corpus(args.data_dir)
+    args.labels = labels
+    args.vocab = vocab
 
     # 2. model
     model = get_model(args)
@@ -261,9 +271,9 @@ def main():
     # 3. train and evaluation
     if args.do_train:
         print("Acc for {} fold {}: ".format(args.dataset, args.fold_id))
-        train_dataset = get_dataset(args, tokenizer, mode="train")
-        dev_dataset = get_dataset(args, tokenizer, mode="dev")
-        test_dataset = get_dataset(args, tokenizer, mode="test")
+        train_dataset = get_dataset(args, mode="train")
+        dev_dataset = get_dataset(args, mode="dev")
+        test_dataset = get_dataset(args, mode="test")
 
         train(model, args, train_dataset, dev_dataset, test_dataset)
 
@@ -273,12 +283,12 @@ def main():
         model.eval()
 
         if args.do_eval:
-            dataset = get_dataset(args, tokenizer, mode="dev")
+            dataset = get_dataset(args, mode="dev")
             acc, f1 = evaluate(model, args, dataset, desc="dev", write_file=True)
             print("Dev Acc=%.4f, F1: %.4f" % (acc, f1))
 
         if args.do_pred:
-            dataset = get_dataset(args, tokenizer, mode="test")
+            dataset = get_dataset(args, mode="test")
             acc, f1 = evaluate(model, args, dataset, desc="test", write_file=True)
             print("Test Acc=%.4f, F1: %.4f" % (acc, f1))
 
