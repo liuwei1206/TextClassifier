@@ -28,8 +28,10 @@ def get_vocab_from_corpus(data_dir, item_key="text", require_unk=False):
                 if line:
                     sample = json.loads(line)
                     text = sample[item_key]
-
-                    tokens = nltk.word_tokenize(text)
+                    if item_key == "relations":
+                        tokens = text
+                    else:
+                        tokens = nltk.word_tokenize(text)
                     for token in tokens:
                         vocab.add(token)
     vocab = list(vocab)

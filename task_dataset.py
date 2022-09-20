@@ -52,8 +52,10 @@ class EmbedDataset(Dataset):
 
                     text = sample[self.text_key]
                     label = sample[self.label_key]
-
-                    tokens = nltk.word_tokenize(text)
+                    if self.text_key == "relations":
+                        tokens = text
+                    else:
+                        tokens = nltk.word_tokenize(text)
                     if len(tokens) > self.max_seq_length:
                         tokens = tokens[:self.max_seq_length]
                     token_ids = self.convert_tokens_to_ids(tokens)

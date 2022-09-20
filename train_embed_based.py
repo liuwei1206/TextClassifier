@@ -259,7 +259,7 @@ def main():
         output_dir = os.path.join(output_dir, str(args.fold_id))
     args.output_dir = output_dir
     labels = get_labels_from_corpus(args.data_dir, item_key="score")
-    vocab = get_vocab_from_corpus(args.data_dir)
+    vocab = get_vocab_from_corpus(args.data_dir, item_key="relations", require_unk=True)
     args.labels = labels
     args.vocab = vocab
 
