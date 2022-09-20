@@ -50,7 +50,7 @@ def get_argparse():
     parser.add_argument("--do_pred", default=False, action="store_true")
     parser.add_argument("--max_seq_length", default=64, type=int, help="the max length of input sequence")
     parser.add_argument("--train_batch_size", default=4, type=int, help="the training batch size")
-    parser.add_argument("--eval_batch_size", default=4, type=int, help="the eval batch size")
+    parser.add_argument("--eval_batch_size", default=36, type=int, help="the eval batch size")
     parser.add_argument("--num_train_epochs", default=20, type=int, help="training epoch, only work when max_step==-1")
     parser.add_argument("--learning_rate", default=5e-2, type=float, help="The initial learning rate for Adam")
     parser.add_argument("--dropout", default=0.5, type=float, help="dropout value")

@@ -117,8 +117,8 @@ def build_embedding_of_corpus(embed_file, vocab, embed_dim):
                         print("load embedding finished!")
                         break
                 idx += 1
-                if idx > 100000:
-                    break
+                # if idx > 100000:
+                #     break
                 if idx % 21800 == 0:
                     print("loading per%d"%(idx / 21800))
 
