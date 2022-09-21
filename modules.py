@@ -32,12 +32,14 @@ class Embedding(torch.nn.Module):
         return self.embedding(input_ids)
 
 
-class BiLSMT(torch.nn.Module):
+class BiLSTM(torch.nn.Module):
     def __init__(self, input_size, hidden_size, num_layers=1):
-        super(BiLSMT, self).__init__()
+        super(BiLSTM, self).__init__()
 
         self.f_lstm = nn.LSTM(input_size, hidden_size // 2, num_layers=num_layers, batch_first=True)
         self.b_lstm = nn.LSTM(input_size, hidden_size // 2, num_layers=num_layers, batch_first=True)
+        # self.f_lstm.reset_parameters()
+        # self.b_lstm.reset_parameters()
 
     def forward(self, inputs, seq_lengths):
         """

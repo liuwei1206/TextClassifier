@@ -8,7 +8,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from modules import Embedding, BiLSMT
+from modules import Embedding, BiLSTM
 
 class TextLSTM(nn.Module):
     def __init__(self, params):
@@ -23,9 +23,17 @@ class TextLSTM(nn.Module):
         self.num_labels = params["num_labels"]
         self.dropout = nn.Dropout(p=params["dropout"])
         self.word_embedding = Embedding(vocab, self.input_dim, embed_file, data_dir)
-        self.bilstm = BiLSMT(self.input_dim, self.hidden_size, self.num_layers)
+        self.bilstm = BiLSTM(self.input_dim, self.hidden_size, self.num_layers)
         self.fc = nn.Linear(self.hidden_size, self.hidden_size // 4)
         self.classifier = nn.Linear(self.hidden_size // 4, self.num_labels)
+
+        self.init_weights()
+
+    def init_weights(self):
+        self.fc.weight.data.normal_(mean=0.0, std=0.02)
+        self.fc.bias.data.zero_()
+        self.classifier.weight.data.normal_(mean=0.0, std=0.02)
+        self.classifier.bias.data.zero_()
 
     def forward(
         self,

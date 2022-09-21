@@ -17,6 +17,7 @@ from torch.utils.data.sampler import RandomSampler, Sampler, SequentialSampler
 from torch.utils.data.dataloader import DataLoader
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ExponentialLR
+from transformers.optimization import AdamW, get_linear_schedule_with_warmup
 
 from task_dataset import EmbedDataset
 from models import TextLSTM
@@ -62,6 +63,7 @@ def get_argparse():
     return parser
 
 def set_seed(seed):
+    print("initialize with seed: %d"%(seed))
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -165,7 +167,6 @@ def train(model, args, train_dataset, dev_dataset, test_dataset):
             avg_loss += cur_loss
             torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
             optimizer.step()
-            # scheduler.step()
             global_step += 1
 
             if global_step % 100 == 0:

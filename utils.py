@@ -4,10 +4,14 @@
 import os
 import json
 import pickle
+import random
 
 import nltk
 import numpy as np
 import torch
+
+random.seed(106524)
+np.random.seed(106524)
 
 def get_vocab_from_corpus(data_dir, item_key="text", require_unk=False):
     """
@@ -35,6 +39,7 @@ def get_vocab_from_corpus(data_dir, item_key="text", require_unk=False):
                     for token in tokens:
                         vocab.add(token)
     vocab = list(vocab)
+    vocab = sorted(vocab)
     vocab.insert(0, "<pad>")
     if require_unk:
         vocab.insert(1, "<unk>")
@@ -55,6 +60,7 @@ def get_labels_from_corpus(data_dir, item_key="label"):
                     label = sample[item_key]
                     labels.add(label)
     labels = list(labels)
+    labels = sorted(labels)
     print("label size: %d" % (len(labels)))
     return labels
 
@@ -133,14 +139,22 @@ def build_embedding_of_corpus(embed_file, vocab, embed_dim, data_dir):
 
         corpus_embed = np.empty([len(vocab), embed_dim])
         scale = np.sqrt(3.0 / embed_dim)
+        num_matched = 0
+        num_non_matched = 0
+        missing_words = []
         for idx, word in enumerate(vocab):
             if word in word2vec:
                 corpus_embed[idx, :] = word2vec[word]
+                num_matched += 1
             elif word.lower() in word2vec:
                 corpus_embed[idx, :] = word2vec[word.lower()]
+                num_matched += 1
             else:
                 corpus_embed[idx, :] = np.random.uniform(-scale, scale, [1, embed_dim])
-        
+                num_non_matched += 1
+                missing_words.append(word)
+        print("total: %d, matched: %d, non-matched: %d"%(len(vocab), num_matched, num_non_matched))
+        print(missing_words[:10])
         with open(processed_file, "wb") as f:
             pickle.dump(corpus_embed, f)
 
