@@ -52,5 +52,6 @@ class BiLSMT(torch.nn.Module):
         b_lstm_out, b_hidden = self.b_lstm(reversed_inputs)
         b_lstm_out = reverse_padded_sequence(b_lstm_out, lengths)
         lstm_out = torch.cat((f_lstm_out, b_lstm_out), dim=-1)
+        f_lstm_out = reverse_padded_sequence(f_lstm_out, lengths)
 
         return lstm_out, f_lstm_out, b_lstm_out

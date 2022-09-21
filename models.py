@@ -44,9 +44,6 @@ class TextLSTM(nn.Module):
         input_embeddings = self.word_embedding(input_ids)
         input_embeddings = self.dropout(input_embeddings)
         _, f_lstm_out, b_lstm_out = self.bilstm(input_embeddings, seq_lengths)
-        last_index = (seq_lengths - 1).view(-1, 1, 1)
-        last_index = last_index.repeat(1, 1, self.hidden_size // 2)
-        # f_last_state = torch.gather(f_lstm_out, dim=1, index=last_index).squeeze(dim=1) # [B, D]
         f_last_state = f_lstm_out[:, 0, :].squeeze(dim=1)
         b_last_state = b_lstm_out[:, 0, :].squeeze(dim=1)
         lstm_out = torch.cat((f_last_state, b_last_state), dim=-1) # [B, 2D]
