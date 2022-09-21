@@ -4,6 +4,7 @@
 import os
 import json
 
+from collections import defaultdict
 import numpy as np
 import torch
 from torch.utils.data import Dataset
@@ -23,7 +24,8 @@ class EmbedDataset(Dataset):
         self.text_key = params["text_key"]
         self.label_key = params["label_key"]
         self.word2idx = {}
-
+        
+        self.label_distribution = defaultdict(int)
         self.init_dataset()
 
     def convert_tokens_to_ids(self, tokens):
@@ -52,6 +54,7 @@ class EmbedDataset(Dataset):
 
                     text = sample[self.text_key]
                     label = sample[self.label_key]
+                    self.label_distribution[label] += 1
                     if self.text_key == "relations":
                         tokens = text
                     else:

@@ -159,3 +159,11 @@ def build_embedding_of_corpus(embed_file, vocab, embed_dim, data_dir):
             pickle.dump(corpus_embed, f)
 
     return corpus_embed
+
+def random_embedding_of_corpus(vocab, embed_dim):
+    corpus_embed = np.empty([len(vocab), embed_dim])
+    scale = np.sqrt(3.0 / embed_dim)
+    for idx, word in enumerate(vocab):
+        corpus_embed[idx, :] = np.random.uniform(-scale, scale, [1, embed_dim])
+    return corpus_embed
+

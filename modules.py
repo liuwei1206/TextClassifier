@@ -3,7 +3,7 @@
 
 import os
 import json
-from utils import reverse_padded_sequence, build_embedding_of_corpus
+from utils import reverse_padded_sequence, build_embedding_of_corpus, random_embedding_of_corpus
 
 import numpy as np
 import torch
@@ -22,7 +22,8 @@ class Embedding(torch.nn.Module):
         self.init_embedding()
 
     def init_embedding(self):
-        corpus_embed = build_embedding_of_corpus(self.embed_file, self.vocab, self.embed_dim, self.data_dir)
+        # corpus_embed = build_embedding_of_corpus(self.embed_file, self.vocab, self.embed_dim, self.data_dir)
+        corpus_embed = random_embedding_of_corpus(self.vocab, self.embed_dim)
         assert corpus_embed.shape[0] == len(self.vocab), (corpus_embed.shape[0], len(self.vocab))
         assert corpus_embed.shape[1] == self.embed_dim, (corpus_embed.shape[1], self.embed_dim)
 

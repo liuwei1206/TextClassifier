@@ -275,6 +275,8 @@ def main():
         dev_dataset = get_dataset(args, mode="dev")
         test_dataset = get_dataset(args, mode="test")
         print("Train size: %d, Dev size: %d, Test size: %d"%(train_dataset.total_size, dev_dataset.total_size, test_dataset.total_size))
+        print("Label Distribution in Dev: ", dev_dataset.label_distribution)
+        print("Label Distribution in Test: ", test_dataset.label_distribution)
         train(model, args, train_dataset, dev_dataset, test_dataset)
 
     if args.do_eval or args.do_pred:
